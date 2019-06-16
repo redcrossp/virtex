@@ -33,7 +33,7 @@ char*** fmt_children(vtx* v) {
 char** fmt_alloc(vtx* v) {
   char** out = malloc(sizeof(char*) * v->height);
   for (unsigned int i = v->height; i >= 0; i--) {
-    out[i] = malloc(sizeof(char*) * (v->width + 1));
+    out[i] = malloc(sizeof(char) * (v->width + 1));
     out[i][0] = '\0';
   }
   return out;

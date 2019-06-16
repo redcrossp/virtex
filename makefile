@@ -1,17 +1,29 @@
 CC=gcc
 CFLAGS=-Wall -pedantic -std=c99
-FILES=virtex.o format.o
-BUILD=build
 
-.PHONY: all clean
+SRCDIR=src
+BLDDIR=bin
+OBJDIR=$(BLDDIR)/obj
 
-all: virtex
+EXEC=virtex
+SOURCES=$(wildcard $(SRCDIR)/*.c)
+# OBJECTS=$(SOURCES:$(SRCDIR)/%.c,$(OBJDIR)/%.o)
+OBJECTS=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+
+build: $(EXEC)
 
 clean:
-	rm -f virtex *.o
+	rm -rf $(BIN)
 
-virtex: $(FILES)
-	$(CC) $(CFLAGS) -o "${build}$@" $^
+.PHONY: build clean
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c "$(build)$<"
+$(EXEC): $(OBJECTS)
+	@echo "Linking objects"
+	@$(CC) $(CFLAGS) -o $@ $^
+	@echo "Build successful"
+
+$(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.c
+	@echo "Compiling $<"
+	@mkdir -p $(@D)
+	@$(CC) $(CFLAGS) -o $@ -c $<
+
