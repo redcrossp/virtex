@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -pedantic -std=c99
+CFLAGS=-Wall -pedantic -std=c99 -g3
 
 SRCDIR=src
 BLDDIR=bin
@@ -13,7 +13,7 @@ OBJECTS=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
 build: $(EXEC)
 
 clean:
-	rm -rf $(BIN)
+	rm -rf $(BLDDIR)
 
 .PHONY: build clean
 
