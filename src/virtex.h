@@ -1,6 +1,8 @@
 #ifndef _VIRTEX_H_
 #define _VIRTEX_H_
 
+#define VTX_INIT_CHILDCAPACITY (4)
+
 typedef union node node;
 typedef struct vtx vtx;
 
@@ -9,32 +11,32 @@ union node {
   vtx* item;
 };
 
-enum vtx_type {
-  et_lit,
-  et_sum,
-  et_diff,
-  et_prod,
-  // et_quot,
-  et_frac,
-  // et_exp,
-  // et_bigsum,
-  // et_bigprod,
-  // et_sqrt,
-  // et_func
+enum vtxType {
+  VT_LITERAL,
+  VT_SUM,
+  VT_DIFFERENCE,
+  VT_PRODUCT,
+  VT_QUOTIENT,
+  VT_FRACTION,
+  VT_EXPONENT,
+  VT_BIGSUM,
+  VT_BIGPROD,
+  VT_SQRT,
+  VT_FUNC
 };
-typedef enum vtx_type vtx_type;
+typedef enum vtxType vtxType;
 
 struct vtx {
-  enum vtx_type type;
-  unsigned int itemc;
-  unsigned int itemcap;
-  union node* itemv;
+  enum vtxType type;
+  unsigned int childCount;   // item count of child vertecies
+  unsigned int childCapacity; // item capacity of child vertex array
+  union node* childNodes;    // item values of child vertecies
   unsigned int width;
-  unsigned int baseln;
+  unsigned int baseline;
   unsigned int height;
 };
 
-vtx* vtx_create(vtx_type type);
+vtx* vtx_create(vtxType type);
 void vtx_destroy(vtx* v);
 int vtx_insert(vtx* v, vtx* insert);
 // int vtx_remove(vtx* v);

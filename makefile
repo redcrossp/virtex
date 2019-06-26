@@ -2,18 +2,22 @@ CC=gcc
 CFLAGS=-Wall -pedantic -std=c99 -g3
 
 SRCDIR=src
-BLDDIR=bin
+BLDDIR=out
 OBJDIR=$(BLDDIR)/obj
+DEPDIR=$(BLDDIR)/dep
 
-EXEC=virtex
+EXEC=$(BLDDIR)/virtex
 SOURCES=$(wildcard $(SRCDIR)/*.c)
-# OBJECTS=$(SOURCES:$(SRCDIR)/%.c,$(OBJDIR)/%.o)
 OBJECTS=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+DEPENDS=$(patsubst $(SRCDIR)/%.c,$(DEPDIR)/%.d,$(SOURCES))
+# OBJECTS=$(SOURCES:$(SRCDIR)/%.c,$(OBJDIR)/%.o)
 
 build: $(EXEC)
 
 clean:
-	rm -rf $(BLDDIR)
+	@echo "Removing $(BLDDIR) directory"
+	@rm -rf $(BLDDIR)
+	@echo "Clean successful"
 
 .PHONY: build clean
 
@@ -24,6 +28,7 @@ $(EXEC): $(OBJECTS)
 
 $(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	@echo "Compiling $<"
-	@mkdir -p $(@D)
-	@$(CC) $(CFLAGS) -o $@ -c $<
+	@mkdir -p $(OBJDIR) $(DEPDIR)
+	@$(CC) $(CFLAGS) -o $@ -MMD -MF $(patsubst $(OBJDIR)/%.o,$(DEPDIR)/%.d,$@) -c $<
 
+-include $(DEPENDS)

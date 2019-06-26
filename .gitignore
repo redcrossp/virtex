@@ -1,4 +1,2 @@
-*.o
-ViRTeX Logo.png
+out/
 sandbox
-virtex
