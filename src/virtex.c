@@ -22,6 +22,7 @@ void vtx_destroy(vtx* v) {
       vtx_destroy(v->childNodes[i].item);
   }
   free(v->childNodes);
+  free(v);
 }
 
 // add child vertex, doubling size of children array if necessary
@@ -46,13 +47,6 @@ int vtx_text(vtx* v, char* str) {
   strcpy(str_copy, str);
   v->childNodes[0].text = str_copy;
   return 0;
-}
-
-// format vertex and print to screen
-void vtx_print(vtx* v) {
-  char** str = vtx_format(v);
-  for (unsigned int i = 0; i < v->height; i++)
-    printf("%s\n", str[i]);
 }
 
 

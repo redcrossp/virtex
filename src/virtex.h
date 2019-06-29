@@ -16,13 +16,12 @@ enum vtxType {
   VT_SUM,
   VT_DIFFERENCE,
   VT_PRODUCT,
-  VT_QUOTIENT,
   VT_FRACTION,
   VT_EXPONENT,
   VT_BIGSUM,
   VT_BIGPROD,
   VT_SQRT,
-  VT_FUNC
+  VT_FUNCTION
 };
 typedef enum vtxType vtxType;
 

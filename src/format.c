@@ -1,6 +1,6 @@
 #include <string.h>
-
 #include <stdlib.h>
+#include <stdio.h>
 #include "virtex.h"
 #include "format.h"
 
@@ -19,17 +19,40 @@ char* strpad(char* str, size_t n) {
   return str;
 }
 
-// TODO: dispatcher is bad for maintainability use switch
-formatter fmt_dispatch[5] = {
-  fmt_lit,
-  fmt_sum,
-  fmt_diff,
-  fmt_prod,
-  fmt_frac
-};
+// format vertex and print to screen
+void vtx_print(vtx* v) {
+  char** fmt_string = vtx_format(v);
+  for (unsigned int i = 0; i < v->height; i++)
+    printf("%s\n", fmt_string[i]);
+  fmt_free(v, fmt_string);
+}
 
 char** vtx_format(vtx* v) {
-  return fmt_dispatch[v->type](v);
+  char** fmt_string;
+  switch (v->type) {
+    case VT_LITERAL:
+      fmt_string = fmt_literal(v);
+      break;
+    case VT_SUM:
+      fmt_string = fmt_sum(v);
+      break;
+    case VT_DIFFERENCE:
+      fmt_string = fmt_difference(v);
+      break;
+    case VT_PRODUCT:
+      fmt_string = fmt_product(v);
+      break;
+    case VT_FRACTION:
+      fmt_string = fmt_fraction(v);
+      break;
+    case VT_EXPONENT:
+    case VT_BIGSUM:
+    case VT_BIGPROD:
+    case VT_SQRT:
+    case VT_FUNCTION:
+      break;
+  }
+  return fmt_string;
 }
 
 // Returns [format string] array of vtx children.
@@ -51,23 +74,28 @@ char** fmt_alloc(vtx* v) {
   return out;
 }
 
+void fmt_free(vtx* v, char** fmt_string) {
+  for (unsigned int i = 0; i < v->height; i++) {
+    free(fmt_string[i]);
+  }
+  free(fmt_string);
+}
+
 // Frees return value of fmt_children.
-void fmt_free(vtx* v, char*** childrenStrings) {
+void fmt_free_children(vtx* v, char*** childrenStrings) {
   for (unsigned int i = 0; i < v->childCount; i++) {
-    unsigned int childHeight = v->childNodes[i].item->height;
-    for (unsigned int j = 0; j < childHeight; j++) {
-      free(childrenStrings[i][j]);
-    }
-    free(childrenStrings[i]);
+    fmt_free(v->childNodes[i].item, childrenStrings[i]);
   }
   free(childrenStrings);
 }
+
+
 
 // =========================================================
 //                  VTX-SPECIFIC FORMATTERS
 // =========================================================
 
-char** fmt_lit(vtx* v) {
+char** fmt_literal(vtx* v) {
   v->height = 1;
   v->baseline = 0;
   v->width = strlen(v->childNodes[0].text);
@@ -124,7 +152,7 @@ char** fmt_list(vtx* v, const char* delimiter, const unsigned int delimLen) {
       }
     }
   }
-  fmt_free(v, childrenStrings);
+  fmt_free_children(v, childrenStrings);
   return formatStr;
 }
 
@@ -134,19 +162,19 @@ char** fmt_sum(vtx* v) {
   return fmt_list(v, DELIMITER_SUM, DELIMITER_SUM_LENGTH);
 }
 
-char** fmt_diff(vtx* v) {
+char** fmt_difference(vtx* v) {
   const char* DELIMITER_DIFF = " - ";
   const unsigned int DELIMITER_DIFF_LENGTH = 3;
   return fmt_list(v, DELIMITER_DIFF, DELIMITER_DIFF_LENGTH);
 }
 
-char** fmt_prod(vtx* v) {
+char** fmt_product(vtx* v) {
   const char* DELIMITER_PROD = " * ";
   const unsigned int DELIMITER_PROD_LENGTH = 3;
   return fmt_list(v, DELIMITER_PROD, DELIMITER_PROD_LENGTH);
 }
 
-char** fmt_frac(vtx* v) {
+char** fmt_fraction(vtx* v) {
   char*** childrenStrings = fmt_children(v);
   
   vtx* item0 = v->childNodes[0].item;
@@ -174,7 +202,7 @@ char** fmt_frac(vtx* v) {
       strpad(formatStr[y], v->width - item1->width - item1Start);
     }
   }
-  fmt_free(v, childrenStrings);
+  fmt_free_children(v, childrenStrings);
   return formatStr;
 }
 
