@@ -1,0 +1,79 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+# genSuiteFromTests generates a main.c file to run the specified tests
+#
+# OUTPUT  test suite file containing main function
+# FILE    .gen.c file to include in test
+#         (NOTE dependencies are actually associated header files)
+
+# set preferences, constants
+use open qw<:encoding(UTF-8)>;
+my $READ_ONLY = "<";
+my $WRITE_ONLY = ">";
+
+# read directory arguments, write boilerplate to main and it's imports
+if (@ARGV < 1) {
+  print STDERR "Usage: genSuiteFromTests OUPUT [FILE]...\n";
+  exit;
+}
+my $suiteFile = shift;
+# $suiteFile =~ /(?:.*\/)?([^\/]+)\.gen\.c/;
+# my $basename = $1;
+my $suiteHandle;
+open($suiteHandle, $WRITE_ONLY, $suiteFile)
+    or die "$0: can't open $suiteFile: $!";
+print $suiteHandle "#include <stdio.h>\n";
+foreach my $headerFile (@ARGV) {
+  if (not $headerFile =~ s/(.+)\.gen\.c$/$1\.gen\.h/) {
+    print STDERR "$0: $headerFile is not generated test file";
+    exit;
+  }
+  $headerFile =~ /(?:.*\/)?([^\/]*)$/;
+  my $stemname = $1;
+  print $suiteHandle "#include \"$stemname\"\n";
+}
+print $suiteHandle
+'
+typedef unsigned int (*testFunction)(void);
+void runTest(unsigned int id, char* name, testFunction test) {
+  unsigned int failureLine = test();
+  if (failureLine) {
+    printf("   #%02d [FAILED] \"%s\" at line %d\n", id, name, failureLine);
+  } else {
+    printf(" + #%02d [PASSED] \"%s\"\n", id, name);
+  }
+}
+
+int main(void) {
+';
+
+# parse files
+foreach my $headerFile (@ARGV) {
+  $headerFile =~ s/(.*)\.gen\.c$/$1.gen.h/;
+  $headerFile =~ /(?:.*\/)?([^\/]*)\.gen\.h$/;
+  my $basename = $1;
+  my $headerHandle;
+  open($headerHandle, $READ_ONLY, $headerFile)
+      or die "$0: can't open $headerFile: $!";
+
+  print $suiteHandle "  printf(\"Running $basename tests\\n\");\n";
+  my $testCount = 0;
+  while (<$headerHandle>) {
+    if (/([\w_]+)\(void\); \/\/ (.*)$/) {
+      $testCount++;
+      print $suiteHandle "    runTest($testCount, \"$2\", $1);\n";
+    }
+  }
+
+  close $headerHandle;
+}
+
+# clean up
+print $suiteHandle
+'  return 0;
+}
+';
+close $suiteHandle;
+

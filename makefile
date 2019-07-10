@@ -16,12 +16,16 @@ TEST_OUTDIR=$(BLDDIR)/test
 TEST_GENDIR=$(TEST_OUTDIR)/gen
 TEST_OBJDIR=$(TEST_OUTDIR)/obj
 
-TEST_EXEC=$(TEST_OUTDIR)/virtex_test
-TEST_MAIN=$(TEST_GENDIR)/main.gen.c
-TEST_MAINOBJ=$(TEST_OBJDIR)/main.gen.o
-TEST_SOURCES=$(wildcard $(TEST_SRCDIR)/*)
-TEST_OBJECTS=$(patsubst $(TEST_SRCDIR)/%.test.c,$(TEST_OBJDIR)/%.gen.o,$(TEST_SOURCES))
+ifeq ($(origin TEST_EXEC), undefined)
+	TEST_EXEC=$(TEST_OUTDIR)/virtex_test
+	TEST_MAIN=$(TEST_GENDIR)/main.gen.c
+else
+	TEST_MAIN=$(patsubst $(TEST_OUTDIR)/%,$(TEST_GENDIR)/%.gen.c,$(TEST_EXEC))
+endif
+TEST_MAINOBJ=$(patsubst $(TEST_GENDIR)/%.gen.c,$(TEST_OBJDIR)/%.gen.o,$(TEST_MAIN))
+TEST_SOURCES?=$(wildcard $(TEST_SRCDIR)/*)
 TEST_GENERATES=$(patsubst $(TEST_SRCDIR)/%.test.c,$(TEST_GENDIR)/%.gen.c,$(TEST_SOURCES))
+TEST_OBJECTS=$(patsubst $(TEST_GENDIR)/%.gen.c,$(TEST_OBJDIR)/%.gen.o,$(TEST_GENERATES))
 
 build: $(EXEC)
 
@@ -33,6 +37,7 @@ clean:
 	@echo "Clean successful"
 
 .PHONY: build clean test
+
 
 
 $(EXEC): $(OBJECTS)
@@ -50,11 +55,6 @@ $(TEST_EXEC): $(TEST_MAINOBJ) $(TEST_OBJECTS) $(filter-out $(OBJDIR)/main.o, $(O
 	@$(CC) $(CFLAGS) -o $@ $^
 	@echo "Test build successful"
 
-$(TEST_MAIN) $(TEST_GENERATES): $(TEST_SOURCES)
-	@echo "Generating tests"
-	@mkdir -p $(TEST_GENDIR)
-	@scripts/generateTests $(TEST_SRCDIR) $(TEST_GENDIR) "../../../src" $(TEST_SOURCES)
-
 $(TEST_MAINOBJ): $(TEST_MAIN)
 	@echo "Compiling $<"
 	@mkdir -p $(TEST_OBJDIR)
@@ -65,4 +65,15 @@ $(TEST_OBJECTS): $(TEST_OBJDIR)/%.gen.o: $(TEST_GENDIR)/%.gen.c $(SRCDIR)/%.h
 	@mkdir -p $(TEST_OBJDIR)
 	@$(CC) $(CFLAGS) -o $@ -c $<
 
+$(TEST_MAIN): $(TEST_GENERATES)
+	@echo "Generating suite"
+	@mkdir -p $(TEST_GENDIR)
+	@scripts/genSuiteFromTests $(TEST_MAIN) $(TEST_GENERATES)
+
+$(TEST_GENERATES): $(TEST_GENDIR)/%.gen.c: $(TEST_SRCDIR)/%.test.c
+	@echo "Generating $<"
+	@mkdir -p $(TEST_GENDIR)
+	@scripts/genTestsFromTemplate $(SRCDIR) $< $@
+
 -include $(DEPENDS)
+
