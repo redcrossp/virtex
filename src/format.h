@@ -1,5 +1,5 @@
 #ifndef _FORMAT_H_
-#define _FORMAT_H
+#define _FORMAT_H_
 
 #include "virtex.h"
 
