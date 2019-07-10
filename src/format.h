@@ -1,6 +1,7 @@
 #ifndef _FORMAT_H_
 #define _FORMAT_H_
 
+#include <stdlib.h>
 #include "virtex.h"
 
 char* strpad(char* str, size_t n);
