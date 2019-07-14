@@ -10,6 +10,9 @@ vtx* vtx_create(vtxType type) {
   v->childCount = 0;
   v->childCapacity = VTX_INIT_CHILDCAPACITY;
   v->childNodes = malloc(sizeof(node) * VTX_INIT_CHILDCAPACITY);
+  if (type == VT_LITERAL){
+	  v->childNodes[0].text = malloc(sizeof(char));
+  }
   return v;
 }
 
@@ -45,6 +48,7 @@ int vtx_text(vtx* v, char* str) {
     return -1;
   char* str_copy = malloc(sizeof(char) * (strlen(str) + 1));
   strcpy(str_copy, str);
+  free(v->childNodes[0].text);
   v->childNodes[0].text = str_copy;
   return 0;
 }
