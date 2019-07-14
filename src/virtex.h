@@ -38,7 +38,7 @@ struct vtx {
 vtx* vtx_create(vtxType type);
 void vtx_destroy(vtx* v);
 int vtx_insert(vtx* v, vtx* insert);
-// int vtx_remove(vtx* v);
+vtx* vtx_remove(vtx* v, unsigned int index);
 int vtx_text(vtx* v, char* str);
 // defined in format.c
 char** vtx_format(vtx* v);

@@ -41,6 +41,19 @@ int vtx_insert(vtx* v, vtx* insert) {
   return 0;
 }
 
+// remove child vtx at specified index
+// fails with return value NULL if literal vtx or index out of range
+vtx* vtx_remove(vtx* v, unsigned int index) {
+  if (v->type == VT_LITERAL || index >= v->childCount)
+    return NULL;
+  vtx* poppedVirtex = v->childNodes[index].item;
+  for (; index < v->childCount - 1; index++) {
+    v->childNodes[index] = v->childNodes[index + 1];
+  }
+  v->childCount--;
+  return poppedVirtex;
+}
+
 // set text of vertex
 // fails with return value -1 if non-terminal vertex
 int vtx_text(vtx* v, char* str) {
@@ -52,7 +65,4 @@ int vtx_text(vtx* v, char* str) {
   v->childNodes[0].text = str_copy;
   return 0;
 }
-
-
-
 
