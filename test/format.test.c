@@ -3,7 +3,7 @@
 
 #define FORMAT_LITERAL_EXPECT "euler"
 TEST("Format Literal") {
-  vtx* v = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_LITERAL);
   vtx_text(v, "euler");
 
   char** fmt_string = vtx_format(v);
@@ -19,9 +19,9 @@ TEST("Format Literal") {
 
 #define FORMAT_SUM_EXPECT "3.14 + 2.718"
 TEST("Format Sum") {
-  vtx* v = vtx_create(VT_SUM);
-  vtx* lit_pi = vtx_create(VT_LITERAL);
-  vtx* lit_e = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_SUM);
+  virtex* lit_pi = vtx_create(VT_LITERAL);
+  virtex* lit_e = vtx_create(VT_LITERAL);
 
   vtx_text(lit_pi, "3.14");
   vtx_text(lit_e, "2.718");

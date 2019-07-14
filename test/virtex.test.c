@@ -1,6 +1,6 @@
 #include <string.h>
 TEST("Create Virtex") {
-  vtx* v = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_LITERAL);
 
   EXPECT(v != NULL);
   EXPECT(v->type == VT_LITERAL);
@@ -12,7 +12,7 @@ TEST("Create Virtex") {
 }
 
 TEST("Literal Virtex Set Text") {
-  vtx* v = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_LITERAL);
   
   EXPECT(vtx_text(v, "mahler") == 0);
   EXPECT(vtx_text(v, "joe") == 0);
@@ -24,7 +24,7 @@ TEST("Literal Virtex Set Text") {
 }
 
 TEST("Sum Virtex Set Text") {
-  vtx* v = vtx_create(VT_SUM);
+  virtex* v = vtx_create(VT_SUM);
 
   EXPECT(vtx_text(v, "euler") == -1);
 
@@ -33,8 +33,8 @@ TEST("Sum Virtex Set Text") {
 }
 
 TEST("Literal Virtex Insert") {
-  vtx* v = vtx_create(VT_LITERAL);
-  vtx* i = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_LITERAL);
+  virtex* i = vtx_create(VT_LITERAL);
 
   EXPECT(vtx_insert(v, i) == -1);
   EXPECT(v->childCount == 0);
@@ -45,7 +45,7 @@ TEST("Literal Virtex Insert") {
 }
 
 TEST("Literal Virtex Remove") {
-  vtx* v = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_LITERAL);
 
   vtx_text(v, "text");
   EXPECT(vtx_remove(v, 0) == NULL);
@@ -55,8 +55,8 @@ TEST("Literal Virtex Remove") {
 }
 
 TEST("Sum Virtex Insert") {
-  vtx* v = vtx_create(VT_SUM);
-  vtx* i = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_SUM);
+  virtex* i = vtx_create(VT_LITERAL);
 
   EXPECT(vtx_insert(v, i) == 0);
   EXPECT(v->childCount == 1);
@@ -67,9 +67,9 @@ TEST("Sum Virtex Insert") {
 }
 
 TEST("Sum Virtex Remove") {
-  vtx* v = vtx_create(VT_SUM);
-  vtx* i = vtx_create(VT_LITERAL);
-  vtx* r = vtx_create(VT_LITERAL);
+  virtex* v = vtx_create(VT_SUM);
+  virtex* i = vtx_create(VT_LITERAL);
+  virtex* r = vtx_create(VT_LITERAL);
 
   vtx_insert(v, i);
   vtx_insert(v, r);
