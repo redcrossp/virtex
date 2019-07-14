@@ -14,6 +14,8 @@ TEST("Create Virtex") {
 TEST("Literal Virtex Set Text") {
   vtx* v = vtx_create(VT_LITERAL);
   
+  EXPECT(vtx_text(v, "mahler") == 0);
+  EXPECT(vtx_text(v, "joe") == 0);
   EXPECT(vtx_text(v, "euler") == 0);
   EXPECT(strcmp(v->childNodes[0].text, "euler") == 0);
 
