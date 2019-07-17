@@ -17,6 +17,7 @@ char** fmt_sum(virtex* v);
 char** fmt_difference(virtex* v);
 char** fmt_product(virtex* v);
 char** fmt_fraction(virtex* v);
+char** fmt_exponent(virtex* v);
 
 #endif // _FORMAT_H_
 

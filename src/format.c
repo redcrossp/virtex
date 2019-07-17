@@ -46,6 +46,8 @@ char** vtx_format(virtex* v) {
       fmt_string = fmt_fraction(v);
       break;
     case VT_EXPONENT:
+      fmt_string = fmt_exponent(v);
+      break;
     case VT_BIGSUM:
     case VT_BIGPROD:
     case VT_SQRT:
@@ -206,4 +208,31 @@ char** fmt_fraction(virtex* v) {
   return formatStr;
 }
 
+char** fmt_exponent(virtex* v) {
+  char*** childrenStrings = fmt_children(v);
+
+  virtex* item0 = v->childNodes[0].item;
+  virtex* item1 = v->childNodes[1].item;
+
+  v->height = item0->height + item1->baseline;
+  v->baseline = item0->baseline + item1->baseline;
+  v->width = item0->width + item1->width + 1;
+
+  char** formatStr = fmt_alloc(v);
+  for (unsigned int y = 0; y < v->height; y++) {
+    if (y < item1->baseline) {
+      strpad(formatStr[y], item0->width + 1);
+    } else {
+      strcat(formatStr[y], childrenStrings[0][y - item1->baseline]);
+      strpad(formatStr[y], 1);
+    }
+    if (y < item1->height) {
+      strcat(formatStr[y], childrenStrings[1][y]);
+    } else {
+      strpad(formatStr[y], item1->width);
+    }
+  }
+  fmt_free_children(v, childrenStrings);
+  return formatStr;
+}
 
