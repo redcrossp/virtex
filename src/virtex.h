@@ -27,12 +27,9 @@ typedef enum vtxType vtxType;
 
 struct virtex {
   enum vtxType type;
-  unsigned int childCount;   // item count of child virtexes
-  unsigned int childCapacity; // item capacity of child virtex array
-  union node* childNodes;    // item values of child virtexes
-  unsigned int width;
-  unsigned int baseline;
-  unsigned int height;
+  unsigned int childrenCount;   // item count of child virtexes
+  unsigned int childrenCapacity; // item capacity of child virtex array
+  union node* childrenNodes;    // item values of child virtexes
 };
 
 virtex* vtx_create(vtxType type);
@@ -40,8 +37,6 @@ void vtx_destroy(virtex* v);
 int vtx_insert(virtex* v, virtex* insert);
 virtex* vtx_remove(virtex* v, unsigned int index);
 int vtx_text(virtex* v, char* str);
-// defined in format.c
-char** vtx_format(virtex* v);
 void vtx_print(virtex* v);
 
 #endif
