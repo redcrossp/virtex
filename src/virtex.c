@@ -68,7 +68,7 @@ int vtx_text(virtex* v, char* str) {
 }
 
 void vtx_print(virtex* v) {
-  format* f = fmt_dispatch(v);
+  format* f = fmt_dispatch(v, ctx_root(CTX_DISPLAY));
   fmt_print(f);
   fmt_destroy(f);
 }
