@@ -3,6 +3,7 @@
 #include "virtex.h"
 #include "format.h"
 #include "parser.h"
+#include "font.h"
 
 int main() {
   virtex* lit1 = vtx_create(VT_LITERAL);
@@ -10,7 +11,7 @@ int main() {
   virtex* lit2 = vtx_create(VT_LITERAL);
   vtx_text(lit2, "72");
   virtex* lit3 = vtx_create(VT_LITERAL);
-  vtx_text(lit3, "-9");
+  vtx_text(lit3, "9");
   virtex* lit4 = vtx_create(VT_LITERAL);
   vtx_text(lit4, "10");
   virtex* lit5 = vtx_create(VT_LITERAL);
@@ -50,6 +51,7 @@ int main() {
   vtx_insert(prod2, frac2);
   vtx_insert(prod2, lit7);
 
+  font_init();
   // vtx_print(prod2);
 
   // only have to destory outside virtex

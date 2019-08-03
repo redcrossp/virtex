@@ -1,22 +1,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "virtex.h"
 #include "format.h"
+#include "font.h"
 
 // A [format] describes the ASCII representation of a virtex. A [format string]
 // has format.height strings of exactly format.width length.
-
-// Pads str on end with spaces (ASCII 32).
-// str must have enough space for the result.
-char* strpad(char* str, size_t n) {
-  size_t len = strlen(str);
-  size_t end = len + n;
-  for (size_t i = len; i < end; i++)
-    str[i] = ' ';
-  str[end] = '\0';
-  return str;
-}
 
 format* fmt_create(unsigned int height, unsigned int width,
     unsigned int baseline) {
@@ -53,41 +44,90 @@ void fmt_malloc_string(format* f) {
   }
 }
 
-// format virtex and print to screen
+// print [format string] in [format]
 void fmt_print(format* f) {
   for (unsigned int i = 0; i < f->height; i++)
     printf("%s\n", f->string[i]);
 }
 
+
+
+// A [context] describes the [format] context of a [virtex]. A [virtex] itself
+// is not associated with a parent in the format tree, and therefore may be
+// inserted many times. The [context] tells the formatting function how the
+// [virtex] should be drawn.
+
+#define CTX_ROOT_DEPTH (0)
+#define CTX_ROOT_SIZEDDEPTH (0)
+static const context displayContextRoot
+  = { CTX_ROOT_DEPTH, CTX_ROOT_SIZEDDEPTH, CTX_DISPLAY };
+static const context inlineContextRoot
+  = { CTX_ROOT_DEPTH, CTX_ROOT_SIZEDDEPTH, CTX_INLINE };
+const context ctx_root(int display) {
+  return display ? displayContextRoot : inlineContextRoot;
+}
+
+context ctx_child(context c) {
+  c.depth++;
+  return c;
+}
+
+context ctx_smaller(context c) {
+  c.depth++;
+  c.sizedDepth++;
+  c.display = 0;
+  return c;
+}
+
+unsigned int ctx_font_depth(context c) {
+  unsigned int size = c.sizedDepth / 2;
+  return size > FONT_MAX_DEPTH ? FONT_MAX_DEPTH : size;
+}
+
+
+
+// Pads str on end with spaces (ASCII 32).
+// str must have enough space for the result.
+char* strpad(char* str, size_t n) {
+  size_t len = strlen(str);
+  size_t end = len + n;
+  for (size_t i = len; i < end; i++)
+    str[i] = ' ';
+  str[end] = '\0';
+  return str;
+}
+
+
+
 // Returns [format] array of virtex children.
-format** fmt_children(virtex* v) {
+format** fmt_children(virtex* v, context c) {
   format** childrenFormats = malloc(sizeof(format*) * v->childrenCount);
   for (unsigned int i = 0; i < v->childrenCount; i++) {
-    childrenFormats[i] = fmt_dispatch(v->childrenNodes[i].item);
+    childrenFormats[i] = fmt_dispatch(v->childrenNodes[i].item, c);
   }
   return childrenFormats;
 }
 
-format* fmt_dispatch(virtex* v) {
+format* fmt_dispatch(virtex* v, context c) {
   format* f;
   switch (v->type) {
     case VT_LITERAL:
-      f = fmt_literal(v);
+      f = fmt_literal(v, c);
       break;
     case VT_SUM:
-      f = fmt_sum(v);
+      f = fmt_sum(v, c);
       break;
     case VT_DIFFERENCE:
-      f = fmt_difference(v);
+      f = fmt_difference(v, c);
       break;
     case VT_PRODUCT:
-      f = fmt_product(v);
+      f = fmt_product(v, c);
       break;
     case VT_FRACTION:
-      f = fmt_fraction(v);
+      f = fmt_fraction(v, c);
       break;
     case VT_EXPONENT:
-      f = fmt_exponent(v);
+      f = fmt_exponent(v, c);
       break;
     case VT_BIGSUM:
     case VT_BIGPROD:
@@ -104,9 +144,14 @@ format* fmt_dispatch(virtex* v) {
 //                  VTX-SPECIFIC FORMATTERS
 // =========================================================
 
+
+
 #define FMT_LITERAL_HEIGHT (1)
 #define FMT_LITERAL_BASELINE (0)
-format* fmt_literal(virtex* v) {
+format* fmt_literal(virtex* v, context c) {
+  return font_format(v->childrenNodes[0].text, ctx_font_depth(c));
+
+  /*
   unsigned int width = strlen(v->childrenNodes[0].text);
   format* f = fmt_create(
       FMT_LITERAL_HEIGHT,
@@ -115,6 +160,7 @@ format* fmt_literal(virtex* v) {
   );
   strcpy(f->string[0], v->childrenNodes[0].text);
   return f;
+  */
 }
 
 static format* set_size_list(format** childrenFormats, unsigned int count,
@@ -138,8 +184,8 @@ static format* set_size_list(format** childrenFormats, unsigned int count,
   );
 }
 
-static format* fmt_list(virtex* v, const char* delimiter, const unsigned int delimLen) {
-  format** childrenFormats = fmt_children(v);
+static format* fmt_list(virtex* v, context c, const char* delimiter, const unsigned int delimLen) {
+  format** childrenFormats = fmt_children(v, ctx_child(c));
   format* f = set_size_list(childrenFormats, v->childrenCount, delimLen);
 
   for (unsigned int x = 0; x < v->childrenCount; x++) {
@@ -168,22 +214,22 @@ static format* fmt_list(virtex* v, const char* delimiter, const unsigned int del
   return f;
 }
 
-format* fmt_sum(virtex* v) {
+format* fmt_sum(virtex* v, context c) {
   const char* DELIMITER_SUM = " + ";
   const unsigned int DELIMITER_SUM_LENGTH = 3;
-  return fmt_list(v, DELIMITER_SUM, DELIMITER_SUM_LENGTH);
+  return fmt_list(v, c, DELIMITER_SUM, DELIMITER_SUM_LENGTH);
 }
 
-format* fmt_difference(virtex* v) {
+format* fmt_difference(virtex* v, context c) {
   const char* DELIMITER_DIFF = " - ";
   const unsigned int DELIMITER_DIFF_LENGTH = 3;
-  return fmt_list(v, DELIMITER_DIFF, DELIMITER_DIFF_LENGTH);
+  return fmt_list(v, c, DELIMITER_DIFF, DELIMITER_DIFF_LENGTH);
 }
 
-format* fmt_product(virtex* v) {
+format* fmt_product(virtex* v, context c) {
   const char* DELIMITER_PROD = " * ";
   const unsigned int DELIMITER_PROD_LENGTH = 3;
-  return fmt_list(v, DELIMITER_PROD, DELIMITER_PROD_LENGTH);
+  return fmt_list(v, c, DELIMITER_PROD, DELIMITER_PROD_LENGTH);
 }
 
 static format* set_size_fraction(format** childrenFormats) {
@@ -194,8 +240,8 @@ static format* set_size_fraction(format** childrenFormats) {
   return fmt_create(height, width, baseline);
 }
 
-format* fmt_fraction(virtex* v) {
-  format** childrenFormats = fmt_children(v);
+format* fmt_fraction(virtex* v, context c) {
+  format** childrenFormats = fmt_children(v, ctx_smaller(c));
   format* f = set_size_fraction(childrenFormats);
 
   unsigned int child0Start = (f->width - childrenFormats[0]->width) / 2;
@@ -227,8 +273,13 @@ static format* set_size_exponent(format** childrenFormats) {
   return fmt_create(height, width, baseline);
 }
 
-format* fmt_exponent(virtex* v) {
-  format** childrenFormats = fmt_children(v);
+format* fmt_exponent(virtex* v, context c) {
+  format* childrenFormats[2] = {
+    fmt_dispatch(v->childrenNodes[0].item, ctx_child(c)),
+    fmt_dispatch(v->childrenNodes[1].item, ctx_smaller(c))
+  };
+
+  // format** childrenFormats = fmt_children(v, ctx_child(c));
   format* f = set_size_exponent(childrenFormats);
 
   for (unsigned int y = 0, child0Y = -childrenFormats[1]->baseline;
@@ -245,7 +296,8 @@ format* fmt_exponent(virtex* v) {
       strpad(f->string[y], childrenFormats[1]->width);
     }
   }
-  fmt_destroy_children(childrenFormats, v->childrenCount);
+  fmt_destroy(childrenFormats[0]);
+  fmt_destroy(childrenFormats[1]);
   return f;
 }
 
