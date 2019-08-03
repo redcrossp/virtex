@@ -2,6 +2,7 @@
 
 #include "virtex.h"
 #include "format.h"
+#include "parser.h"
 
 int main() {
   vtx* lit1 = vtx_create(VT_LITERAL);
@@ -43,10 +44,12 @@ int main() {
   vtx_insert(diff2, frac2);
   vtx_insert(diff2, lit7);
 
-  vtx_print(diff2);
+//  vtx_print(diff2);
 
-  // only have to destory outside virtex
+  // only have to destroy outside virtex
   vtx_destroy(diff2);
+
+  parse_file("src/parse_test");
 
   return 0;
 }
