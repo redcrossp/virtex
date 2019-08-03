@@ -1,0 +1,119 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+# genTestsFromTemplate generates test c files from specified template source
+#
+# SRCDIR    directory of program source files
+# TEMPLATE  .test.c template source file
+# OUTPUT    .gen.c compilable test file
+#           (also creates header of same basename)
+
+# set preferences, constants
+use open qw<:encoding(UTF-8)>;
+my $READ_ONLY = "<";
+my $WRITE_ONLY = ">";
+
+# read arguments
+if (@ARGV < 2) {
+  print STDERR "Usage: genTestsFromTemplate SRCDIR TEMPLATE [OUTPUT]\n";
+  exit;
+}
+
+# make sure input file has template extension and corresponding source exists
+my $srcdir = shift;
+$srcdir =~ s/(.*?)\/*$/$1/;
+my $readFile = shift;
+if (not $readFile =~ /(?:.*\/)?([^\/]*)\.test\.c$/) {
+  print STDERR "$0: $readFile is not template test file";
+  exit;
+}
+my $basename = $1;
+if (not -f "$srcdir/$basename.c") {
+  print STDERR "$0: $readFile doesn't mirror a source file $srcdir/$basename.c";
+  exit;
+}
+
+# infer or get output file
+my $writeFile = $readFile;
+if (@ARGV == 0) {
+  $writeFile =~ s/(.*)\.test\.c$/$1.gen.c/;
+} else {
+  $writeFile = shift;
+  #TODO: output file must end with .gen.c
+}
+my $headerFile = $writeFile;
+$headerFile =~ s/(.*).c/$1.h/;
+
+# get relative path from output to source
+# TODO: script currently requires working directory is ancestory of srcdir and outdir
+$/ = "/";
+my $reldir = "";
+my $outdir = $writeFile;
+$outdir =~ s/(?:(.*)\/)?(?:[^\/]*)$/$1/;
+my @srcPathElements = split /\//, $srcdir;
+my @outPathElements = split /\//, $outdir;
+my $outCurrentElement;
+my $srcCurrentElement;
+while (1) {
+  $srcCurrentElement = shift @srcPathElements;
+  $outCurrentElement = shift @outPathElements;
+  last if (not defined($outCurrentElement)) || ($outCurrentElement ne $srcCurrentElement);
+}
+if (defined($outCurrentElement)) {
+  do {{
+    next if $outCurrentElement eq '.';
+    $reldir .= '../';
+  }} while ($outCurrentElement = shift @outPathElements);
+}
+if (defined($srcCurrentElement)) {
+  do {{
+    next if $srcCurrentElement eq '.';
+    $reldir .= "$srcCurrentElement/";
+  }} while ($srcCurrentElement = shift @srcPathElements);
+} 
+chomp $reldir;
+
+# open files
+$/ = "\n";
+my $readHandle;
+open($readHandle, $READ_ONLY, $readFile)
+    or die "$0: can't open $readFile: $!";
+my $writeHandle;
+open($writeHandle, $WRITE_ONLY, $writeFile)
+    or die "$0: can't open $writeFile: $!";
+my $headerHandle;
+open($headerHandle, $WRITE_ONLY, $headerFile)
+    or die "$0: can't open $headerFile $!";
+print $writeHandle "#include \"$reldir/$basename.h\"\n";
+print $headerHandle
+'#ifndef _' . (uc $basename) . '_TESTS_H_
+#define _' . (uc $basename) . '_TESTS_H_
+
+';
+
+# parse file
+my $lineNumber = 0;
+while (<$readHandle>) {
+  $lineNumber++;
+  if (/^TEST\("([\w\s]*)"\)(.*)/) {
+    my $testName = lc "${basename}__$1";
+    $testName =~ tr/ /_/;
+    print $writeHandle "unsigned int $testName()$2\n";
+    print $headerHandle "unsigned int $testName(void); // $1\n";
+  } else {
+    s/PASS\(\);/return 0;/;
+    s/EXPECT\((.*)\);/if (!($1)) return $lineNumber;/;
+    print $writeHandle $_;
+  }
+}
+
+# clean up
+close $readHandle;
+close $writeHandle;
+print $headerHandle
+'
+#endif // _' . uc $basename . '_TESTS_H_
+';
+close $headerHandle;
+

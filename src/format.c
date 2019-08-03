@@ -4,9 +4,8 @@
 #include "virtex.h"
 #include "format.h"
 
-// A [format string] is an array of strings giving an ASCII representation of
-// a [virtex]. A [format string] has vtx.height strings of exactly vtx.width
-// length.
+// A [format] describes the ASCII representation of a virtex. A [format string]
+// has format.height strings of exactly format.width length.
 
 // Pads str on end with spaces (ASCII 32).
 // str must have enough space for the result.
@@ -19,74 +18,84 @@ char* strpad(char* str, size_t n) {
   return str;
 }
 
-// format vertex and print to screen
-void vtx_print(vtx* v) {
-  char** fmt_string = vtx_format(v);
-  for (unsigned int i = 0; i < v->height; i++)
-    printf("%s\n", fmt_string[i]);
-  fmt_free(v, fmt_string);
+format* fmt_create(unsigned int height, unsigned int width,
+    unsigned int baseline) {
+  format* f = malloc(sizeof(format));
+  f->height = height;
+  f->width = width;
+  f->baseline = baseline;
+  fmt_malloc_string(f);
+  return f;
 }
 
-char** vtx_format(vtx* v) {
-  char** fmt_string;
+void fmt_destroy(format* f) {
+  for (unsigned int i = 0; i < f->height; i++) {
+    free(f->string[i]);
+  }
+  free(f->string);
+  free(f);
+}
+
+// Frees return value of fmt_children.
+void fmt_destroy_children(format** childrenFormats, unsigned int count) {
+  for (unsigned int i = 0; i < count; i++) {
+    fmt_destroy(childrenFormats[i]);
+  }
+  free(childrenFormats);
+}
+
+// Allocates empty [format string] with appropriate size for virtex.
+void fmt_malloc_string(format* f) {
+  f->string = malloc(sizeof(char*) * f->height);
+  for (unsigned int i = 0; i < f->height; i++) {
+    f->string[i] = malloc(sizeof(char) * (f->width + 1));
+    f->string[i][0] = '\0';
+  }
+}
+
+// format virtex and print to screen
+void fmt_print(format* f) {
+  for (unsigned int i = 0; i < f->height; i++)
+    printf("%s\n", f->string[i]);
+}
+
+// Returns [format] array of virtex children.
+format** fmt_children(virtex* v) {
+  format** childrenFormats = malloc(sizeof(format*) * v->childrenCount);
+  for (unsigned int i = 0; i < v->childrenCount; i++) {
+    childrenFormats[i] = fmt_dispatch(v->childrenNodes[i].item);
+  }
+  return childrenFormats;
+}
+
+format* fmt_dispatch(virtex* v) {
+  format* f;
   switch (v->type) {
     case VT_LITERAL:
-      fmt_string = fmt_literal(v);
+      f = fmt_literal(v);
       break;
     case VT_SUM:
-      fmt_string = fmt_sum(v);
+      f = fmt_sum(v);
       break;
     case VT_DIFFERENCE:
-      fmt_string = fmt_difference(v);
+      f = fmt_difference(v);
       break;
     case VT_PRODUCT:
-      fmt_string = fmt_product(v);
+      f = fmt_product(v);
       break;
     case VT_FRACTION:
-      fmt_string = fmt_fraction(v);
+      f = fmt_fraction(v);
       break;
     case VT_EXPONENT:
+      f = fmt_exponent(v);
+      break;
     case VT_BIGSUM:
     case VT_BIGPROD:
     case VT_SQRT:
     case VT_FUNCTION:
       break;
   }
-  return fmt_string;
-}
-
-// Returns [format string] array of vtx children.
-char*** fmt_children(vtx* v) {
-  char*** childrenStrings = malloc(sizeof(char**) * v->childCount);
-  for (unsigned int i = 0; i < v->childCount; i++)
-    childrenStrings[i] = vtx_format(v->childNodes[i].item);
-  return childrenStrings;
-}
-
-// Allocates empty format string with appropriate size for vtx.
-// Must be called after format info for node is determined.
-char** fmt_alloc(vtx* v) {
-  char** out = malloc(sizeof(char*) * v->height);
-  for (unsigned int i = 0; i < v->height; i++) {
-    out[i] = malloc(sizeof(char) * (v->width + 1));
-    out[i][0] = '\0';
-  }
-  return out;
-}
-
-void fmt_free(vtx* v, char** fmt_string) {
-  for (unsigned int i = 0; i < v->height; i++) {
-    free(fmt_string[i]);
-  }
-  free(fmt_string);
-}
-
-// Frees return value of fmt_children.
-void fmt_free_children(vtx* v, char*** childrenStrings) {
-  for (unsigned int i = 0; i < v->childCount; i++) {
-    fmt_free(v->childNodes[i].item, childrenStrings[i]);
-  }
-  free(childrenStrings);
+  return f;
 }
 
 
@@ -95,115 +104,148 @@ void fmt_free_children(vtx* v, char*** childrenStrings) {
 //                  VTX-SPECIFIC FORMATTERS
 // =========================================================
 
-char** fmt_literal(vtx* v) {
-  v->height = 1;
-  v->baseline = 0;
-  v->width = strlen(v->childNodes[0].text);
-  char** formatStr = fmt_alloc(v);
-  strcpy(formatStr[0], v->childNodes[0].text);
-  return formatStr;
+#define FMT_LITERAL_HEIGHT (1)
+#define FMT_LITERAL_BASELINE (0)
+format* fmt_literal(virtex* v) {
+  unsigned int width = strlen(v->childrenNodes[0].text);
+  format* f = fmt_create(
+      FMT_LITERAL_HEIGHT,
+      width,
+      FMT_LITERAL_BASELINE
+  );
+  strcpy(f->string[0], v->childrenNodes[0].text);
+  return f;
 }
 
-void set_size_list(vtx* v, const unsigned int delimLen) {
-  unsigned int aboveln = 0;
-  unsigned int belowln = 0;
-  unsigned int width = 0;
-  for (unsigned int i = 0; i < v->childCount; i++) {
-    unsigned int itemHeight = v->childNodes[i].item->height;
-    unsigned int itemBaseln = v->childNodes[i].item->baseline;
-    if (itemBaseln > aboveln)
-      aboveln = itemBaseln;
-    if (itemHeight - itemBaseln > belowln)
-      belowln = itemHeight - itemBaseln;
-    width += v->childNodes[i].item->width + delimLen;
+static format* set_size_list(format** childrenFormats, unsigned int count,
+    const unsigned int delimLen) {
+  unsigned int baseline = 0;
+  unsigned int belowBaseline = 0;
+  unsigned int width = (count - 1) * delimLen;
+  for (unsigned int i = 0; i < count; i++) {
+    unsigned int childHeight = childrenFormats[i]->height;
+    unsigned int childBaseline = childrenFormats[i]->baseline;
+    if (childBaseline > baseline)
+      baseline = childBaseline;
+    if (childHeight - childBaseline > belowBaseline)
+      belowBaseline = childHeight - childBaseline;
+    width += childrenFormats[i]->width;
   }
-  v->baseline = aboveln;
-  v->height = aboveln + belowln;
-  v->width = width - delimLen;
+  return fmt_create(
+      baseline + belowBaseline,
+      width,
+      baseline
+  );
 }
 
-char** fmt_list(vtx* v, const char* delimiter, const unsigned int delimLen) {
-  // each output row has text
-  char*** childrenStrings = fmt_children(v);
-  set_size_list(v, delimLen);
+static format* fmt_list(virtex* v, const char* delimiter, const unsigned int delimLen) {
+  format** childrenFormats = fmt_children(v);
+  format* f = set_size_list(childrenFormats, v->childrenCount, delimLen);
 
-  char** formatStr = fmt_alloc(v);
-  for (unsigned int x = 0; x < v->childCount; x++) {
-    // addition symbols
+  for (unsigned int x = 0; x < v->childrenCount; x++) {
+    // delimeter
     if (x != 0) {
-      for (unsigned int y = 0; y < v->height; y++) {
-        if (y == v->baseline)
-          strcat(formatStr[y], delimiter);
+      for (unsigned int y = 0; y < f->height; y++) {
+        if (y == f->baseline)
+          strcat(f->string[y], delimiter);
         else
-          strpad(formatStr[y], delimLen);
+          strpad(f->string[y], delimLen);
       }
     }
 
-    // items
-    vtx* item = v->childNodes[x].item;
-    char** itemStr = childrenStrings[x];
-    for (unsigned int y = 0, itemY = item->baseline - v->baseline;
-        y < v->height; y++, itemY++) {
-      if (0 <= itemY && itemY < item->height) {
-        // line is in subitem bounds
-        strcat(formatStr[y], itemStr[itemY]);
+    // children
+    for (unsigned int y = 0, childY = childrenFormats[x]->baseline - f->baseline;
+        y < f->height; y++, childY++) {
+      if (0 <= childY && childY < childrenFormats[x]->height) {
+        // line is in child bounds
+        strcat(f->string[y], childrenFormats[x]->string[childY]);
       } else {
-        strpad(formatStr[y], item->width);
+        strpad(f->string[y], childrenFormats[x]->width);
       }
     }
   }
-  fmt_free_children(v, childrenStrings);
-  return formatStr;
+  fmt_destroy_children(childrenFormats, v->childrenCount);
+  return f;
 }
 
-char** fmt_sum(vtx* v) {
+format* fmt_sum(virtex* v) {
   const char* DELIMITER_SUM = " + ";
   const unsigned int DELIMITER_SUM_LENGTH = 3;
   return fmt_list(v, DELIMITER_SUM, DELIMITER_SUM_LENGTH);
 }
 
-char** fmt_difference(vtx* v) {
+format* fmt_difference(virtex* v) {
   const char* DELIMITER_DIFF = " - ";
   const unsigned int DELIMITER_DIFF_LENGTH = 3;
   return fmt_list(v, DELIMITER_DIFF, DELIMITER_DIFF_LENGTH);
 }
 
-char** fmt_product(vtx* v) {
+format* fmt_product(virtex* v) {
   const char* DELIMITER_PROD = " * ";
   const unsigned int DELIMITER_PROD_LENGTH = 3;
   return fmt_list(v, DELIMITER_PROD, DELIMITER_PROD_LENGTH);
 }
 
-char** fmt_fraction(vtx* v) {
-  char*** childrenStrings = fmt_children(v);
-  
-  vtx* item0 = v->childNodes[0].item;
-  vtx* item1 = v->childNodes[1].item;
-
-  v->baseline = item0->height;
-  v->height = item0->height + item1->height + 1;
-  v->width = (item0->width >= item1->width ? item0->width : item1->width) + 2;
-
-  unsigned int item0Start = (v->width - item0->width) / 2;
-  unsigned int item1Start = (v->width - item1->width) / 2;
-
-  char** formatStr = fmt_alloc(v);
-  for (unsigned int y = 0; y < v->height; y++) {
-    if (y < item0->height) {
-      strpad(formatStr[y], item0Start);
-      strcat(formatStr[y], childrenStrings[0][y]);
-      strpad(formatStr[y], v->width - item0->width - item0Start);
-    } else if (y == item0->height) {
-      for (unsigned int x = 0; x < v->width; x++)
-        strcat(formatStr[y], "-");
-    } else {
-      strpad(formatStr[y], item1Start);
-      strcat(formatStr[y], childrenStrings[1][y - item0->height - 1]);
-      strpad(formatStr[y], v->width - item1->width - item1Start);
-    }
-  }
-  fmt_free_children(v, childrenStrings);
-  return formatStr;
+static format* set_size_fraction(format** childrenFormats) {
+  unsigned int height = childrenFormats[0]->height + childrenFormats[1]->height + 1;
+  unsigned int width = (childrenFormats[0]->width >= childrenFormats[1]->width
+      ? childrenFormats[0]->width : childrenFormats[1]->width) + 2;
+  unsigned int baseline = childrenFormats[0]->height;
+  return fmt_create(height, width, baseline);
 }
 
+format* fmt_fraction(virtex* v) {
+  format** childrenFormats = fmt_children(v);
+  format* f = set_size_fraction(childrenFormats);
+
+  unsigned int child0Start = (f->width - childrenFormats[0]->width) / 2;
+  unsigned int child1Start = (f->width - childrenFormats[1]->width) / 2;
+
+  for (unsigned int y = 0, child1Y = -childrenFormats[0]->height - 1;
+      y < f->height; y++, child1Y++) {
+    if (y < childrenFormats[0]->height) {
+      strpad(f->string[y], child0Start);
+      strcat(f->string[y], childrenFormats[0]->string[y]);
+      strpad(f->string[y], f->width - childrenFormats[0]->width - child0Start);
+    } else if (y == childrenFormats[0]->height) {
+      for (unsigned int x = 0; x < f->width; x++)
+        strcat(f->string[y], "-");
+    } else {
+      strpad(f->string[y], child1Start);
+      strcat(f->string[y], childrenFormats[1]->string[child1Y]);
+      strpad(f->string[y], f->width - childrenFormats[1]->width - child1Start);
+    }
+  }
+  fmt_destroy_children(childrenFormats, v->childrenCount);
+  return f;
+}
+
+static format* set_size_exponent(format** childrenFormats) {
+  unsigned int height = childrenFormats[0]->height + childrenFormats[1]->baseline;
+  unsigned int width = childrenFormats[0]->width + childrenFormats[1]->width + 1;
+  unsigned int baseline = childrenFormats[0]->baseline + childrenFormats[1]->baseline;
+  return fmt_create(height, width, baseline);
+}
+
+format* fmt_exponent(virtex* v) {
+  format** childrenFormats = fmt_children(v);
+  format* f = set_size_exponent(childrenFormats);
+
+  for (unsigned int y = 0, child0Y = -childrenFormats[1]->baseline;
+      y < f->height; y++, child0Y++) {
+    if (y < childrenFormats[1]->baseline) {
+      strpad(f->string[y], childrenFormats[0]->width + 1);
+    } else {
+      strcat(f->string[y], childrenFormats[0]->string[child0Y]);
+      strpad(f->string[y], 1);
+    }
+    if (y < childrenFormats[1]->height) {
+      strcat(f->string[y], childrenFormats[1]->string[y]);
+    } else {
+      strpad(f->string[y], childrenFormats[1]->width);
+    }
+  }
+  fmt_destroy_children(childrenFormats, v->childrenCount);
+  return f;
+}
 

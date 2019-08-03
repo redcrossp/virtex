@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+# runTestSuite makes and runs the specified test suites
+# Usage: runTestSuite [SUITE]...
+#   without SUITE, all test targets are made and run
+# 
+# SUITE basename of a test template (e.g. "virtex", "format")
+#
+# suites are made in output test directory
+
+TESTS_OUTDIR="out/test/"
+TESTS_SRCDIR="test/"
+TESTS_EXT=".test.c"
+
+if [[ $@ ]]; then
+  testsToRun=$(echo $@ | sed 's/ /\n/g' | sort | uniq | tr '\n' ' ')
+  testFiles=
+  suiteExec="${TESTS_OUTDIR}suite_$(echo $testsToRun | sed 's/ /_/g' | head -c-1)"
+  for testFile in $testsToRun; do
+    testFile=$TESTS_SRCDIR$testFile$TESTS_EXT
+    testFiles+="$testFile "
+  done
+  make $suiteExec TEST_EXEC=$suiteExec TEST_SOURCES="$testFiles"
+else
+  suiteExec="${TESTS_OUTDIR}virtex_test"
+  make test
+fi
+
+echo "Running test suite $suiteExec"
+valgrind --leak-check=full $suiteExec
+

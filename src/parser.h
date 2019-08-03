@@ -20,18 +20,18 @@ typedef struct stack stack;
 typedef struct vtx_stack vtx_stack;
 
 struct token{
-	char* sym;
-	int size;
+  char* sym;
+  int size;
 };
 
 struct stack{
-	token** syms;
-	int size;
+  token** syms;
+  int size;
 };
 
 struct vtx_stack{
-	vtx** vtcs;
-	int size;
+  virtex** vtcs;
+  int size;
 };
 
 token* create_token();
@@ -49,8 +49,8 @@ void print_stack(stack*);
 
 vtx_stack* create_vtx_stack();
 void destroy_vtx_stack();
-int push_vtx_stack(vtx_stack*, vtx*);
-vtx* pop_vtx_stack(vtx_stack*);
+int push_vtx_stack(vtx_stack*, virtex*);
+virtex* pop_vtx_stack(vtx_stack*);
 
 int is_operator(char);
 int is_escape(char);
@@ -66,6 +66,6 @@ int operator_associativity(token*);
 void parse_file(char*);
 stack* parse_to_tokens(FILE*);
 stack* read_to_postfix(stack*);
-vtx* postfix_to_virtex(stack*);
+virtex* postfix_to_virtex(stack*);
 
 #endif

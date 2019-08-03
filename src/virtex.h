@@ -4,11 +4,11 @@
 #define VTX_INIT_CHILDCAPACITY (4)
 
 typedef union node node;
-typedef struct vtx vtx;
+typedef struct virtex virtex;
 
 union node {
   char* text;
-  vtx* item;
+  virtex* item;
 };
 
 enum vtxType {
@@ -25,23 +25,18 @@ enum vtxType {
 };
 typedef enum vtxType vtxType;
 
-struct vtx {
+struct virtex {
   enum vtxType type;
-  unsigned int childCount;   // item count of child vertecies
-  unsigned int childCapacity; // item capacity of child vertex array
-  union node* childNodes;    // item values of child vertecies
-  unsigned int width;
-  unsigned int baseline;
-  unsigned int height;
+  unsigned int childrenCount;   // item count of child virtexes
+  unsigned int childrenCapacity; // item capacity of child virtex array
+  union node* childrenNodes;    // item values of child virtexes
 };
 
-vtx* vtx_create(vtxType type);
-void vtx_destroy(vtx* v);
-int vtx_insert(vtx* v, vtx* insert);
-// int vtx_remove(vtx* v);
-int vtx_text(vtx* v, char* str);
-// defined in format.c
-char** vtx_format(vtx* v);
-void vtx_print(vtx* v);
+virtex* vtx_create(vtxType type);
+void vtx_destroy(virtex* v);
+int vtx_insert(virtex* v, virtex* insert);
+virtex* vtx_remove(virtex* v, unsigned int index);
+int vtx_text(virtex* v, char* str);
+void vtx_print(virtex* v);
 
 #endif
